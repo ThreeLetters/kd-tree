@@ -9,7 +9,14 @@ class KDTree {
             split: null,
             nodes: [],
             dim: 0,
-            lvl: 0
+            lvl: 0,
+            len: 0,
+            add: function () {
+                ++this.len;
+            },
+            sub: function () {
+                --this.len;
+            }
         }
         this.dims = dims;
     }
@@ -23,6 +30,8 @@ class KDTree {
             } else {
                 node.nodes.push(obj);
                 obj._TreeNode = node;
+                node.add();
+
                 if (node.nodes.length === MAX_NODES) {
                     node.nodes.sort(function (a, b) {
                         return a[this.dims[node.dim]] - b[this.dims[node.dim]];
@@ -34,7 +43,16 @@ class KDTree {
                         nodes: [],
                         dim: (node.lvl + 1) % len,
                         lvl: node.lvl + 1,
-                        parent: node
+                        len: MAX_HALF,
+                        parent: node,
+                        add: function () {
+                            ++this.len;
+                            this.parent.add();
+                        },
+                        sub: function () {
+                            --this.len;
+                            this.parent.sub();
+                        }
                     }
                     for (let i = 0; i < MAX_HALF; ++i) {
                         node.left.nodes.push(node.nodes[i])
@@ -44,7 +62,16 @@ class KDTree {
                         nodes: [],
                         dim: (node.lvl + 1) % len,
                         lvl: node.lvl + 1,
-                        parent: node
+                        parent: node,
+                        len: MAX_HALF,
+                        add: function () {
+                            ++this.len;
+                            this.parent.add();
+                        },
+                        sub: function () {
+                            --this.len;
+                            this.parent.sub();
+                        }
                     }
                     for (let i = MAX_HALF; i < MAX_NODES; ++i) {
                         node.right.nodes.push(node.nodes[i])
@@ -64,22 +91,23 @@ class KDTree {
 
         node.nodes[ind] = node.nodes[node.nodes.length - 1];
         node.nodes.pop();
-        if (node.nodes.length !== 0) return;
+        node.sub();
 
+        var getAll = function (node, call) {
+            if (node.left) {
+                getAll(node.left, call)
+                getAll(node.right, call)
+            } else node.nodes.forEach(call);
+        }
         var recurse = function (node) {
-            if (node.parent) {
+            if (node.parent && (node.parent.left.len + node.parent.right.len) <= MAX_NODES) {
+                getAll(node.parent, function (o) {
+                    o._TreeNode = node.parent;
+                    node.parent.nodes.push(o);
+                });
 
-                if (node.parent.left.left || node.parent.right.left) {
-                    return;
-                }
-
-                if (node.parent.left.nodes.length !== 0 || node.parent.right.nodes.length !== 0) {
-                    return;
-                }
-
-                node.parent.left = node.parent.right = node.parent.split = null;
+                node.parent.left = node.parent.right = null
                 recurse(node.parent);
-                node.parent = null;
             }
         }
         recurse(node)
