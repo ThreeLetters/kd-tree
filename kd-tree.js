@@ -73,7 +73,7 @@ class KDTree {
                     return;
                 }
 
-                if (node.parent.left.nodes.length !== 0 || node.parent.right.nodes.length) {
+                if (node.parent.left.nodes.length !== 0 || node.parent.right.nodes.length !== 0) {
                     return;
                 }
 
